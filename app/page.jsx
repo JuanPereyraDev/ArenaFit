@@ -17,7 +17,6 @@ export default function Home() {
   const handleSubmit = async (e) => {
   e && e.preventDefault();
   if (!dni) return;
-
   setLoading(true);
   setCliente(null);
 
@@ -29,7 +28,13 @@ export default function Home() {
       const data = snap.data();
       const hoy = new Date();
       const vencimiento = new Date(data.vencimiento);
-      const activo = vencimiento >= hoy;
+
+      // ✅ Se suma 1 día completo al vencimiento
+      vencimiento.setDate(vencimiento.getDate() + 1);
+
+      // ✅ Se considera activo hasta el día siguiente del vencimiento
+      const activo = vencimiento > hoy;
+
       setCliente({ ...data, activo });
     } else {
       setCliente({ notFound: true });
@@ -37,11 +42,13 @@ export default function Home() {
   } catch (err) {
     console.error(err);
     setCliente({ error: true });
-  } finally {
-    setLoading(false);
-    setDni(''); // ← limpia el campo después de validar
   }
+
+  // ✅ Limpia el campo después de presionar Enter
+  setDni('');
+  setLoading(false);
 };
+
 
 
   return (
