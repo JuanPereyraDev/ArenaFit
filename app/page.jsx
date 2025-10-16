@@ -26,19 +26,16 @@ export default function Home() {
 
     if (snap.exists()) {
       const data = snap.data();
-
       const hoy = new Date();
+
       const vencimiento = new Date(data.vencimiento);
 
-      // 🔧 Normalizamos las fechas (sin hora)
-      const hoyLocal = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-      const vencLocal = new Date(vencimiento.getFullYear(), vencimiento.getMonth(), vencimiento.getDate());
+      // ✅ Sumar 1 día y establecer la hora al final del día (23:59:59)
+      vencimiento.setDate(vencimiento.getDate() + 1);
+      vencimiento.setHours(23, 59, 59, 999);
 
-      // ✅ Sumamos 1 día completo al vencimiento
-      vencLocal.setDate(vencLocal.getDate() + 1);
-
-      // ✅ La membresía sigue activa hasta el final del día siguiente al vencimiento
-      const activo = hoyLocal < vencLocal;
+      // ✅ Activo hasta el final del día siguiente del vencimiento
+      const activo = hoy <= vencimiento;
 
       setCliente({ ...data, activo });
     } else {
@@ -53,6 +50,7 @@ export default function Home() {
   setDni('');
   setLoading(false);
 };
+
 
 
 
