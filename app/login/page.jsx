@@ -1,8 +1,9 @@
-"use client";
+'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const msg = localStorage.getItem('logoutMessage');
@@ -21,99 +23,84 @@ export default function LoginPage() {
   }, []);
 
   const handleLogin = async (e) => {
-  e && e.preventDefault();
-  setMessage('');
-  if (!email || !password) return;
-  setLoading(true);
+    e && e.preventDefault();
+    setMessage('');
+    if (!email || !password) return;
+    setLoading(true);
 
-  try {
-    const q = query(collection(db, 'admins'), where('email', '==', email));
-    const snap = await getDocs(q);
+    try {
+      const q = query(collection(db, 'admins'), where('email', '==', email));
+      const snap = await getDocs(q);
 
-    if (snap.empty) {
-      setMessage('❌ Credenciales incorrectas');
+      if (snap.empty) {
+        setMessage('❌ Credenciales incorrectas');
+        setLoading(false);
+        return;
+      }
+
+      const docSnap = snap.docs[0];
+      const data = docSnap.data();
+
+      if (!data.activo) {
+        setMessage('⚠️ Tu cuenta está suspendida administrativamente');
+        setLoading(false);
+        return;
+      }
+
+      if (data.passwordHash !== password) {
+        setMessage('❌ Credenciales incorrectas');
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('adminEmail', email);
+      localStorage.setItem('adminDocId', docSnap.id);
+      localStorage.setItem('adminPasswordHash', data.passwordHash);
+      document.cookie = 'adminLogged=true; path=/;';
+
+      setMessage('✅ Sesión iniciada correctamente');
+      setTimeout(() => router.push('/'), 700);
+
+    } catch (err) {
+      console.error(err);
+      setMessage('❌ Ocurrió un error');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const docSnap = snap.docs[0];
-    const data = docSnap.data();
-
-    if (!data.activo) {
-      setMessage('⚠️ Tu cuenta está suspendida administrativamente');
-      setLoading(false);
-      return;
-    }
-
-    if (data.passwordHash !== password) {
-      setMessage('❌ Credenciales incorrectas');
-      setLoading(false);
-      return;
-    }
-
-    // 🔐 Guardar sesión local
-    localStorage.setItem('adminEmail', email);
-    localStorage.setItem('adminDocId', docSnap.id);
-    localStorage.setItem('adminPasswordHash', data.passwordHash);
-
-    document.cookie = 'adminLogged=true; path=/;';
-
-    // ✅ Mostrar mensaje y redirigir al validador
-    setMessage('✅ Sesión iniciada correctamente');
-    setTimeout(() => router.push('/'), 700);
-
-  } catch (err) {
-    console.error(err);
-    setMessage('❌ Ocurrió un error');
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gym relative" style={{ backgroundImage: "url('/fondo-gym.png')" }}>
-      <div className="absolute inset-0 bg-black/75"></div>
-      <main className="relative z-10 w-full max-w-md p-6">
-        <header className="flex items-center justify-center gap-4 mb-2">
-          <img src="/icon-bars.png" alt="icon" className="w-8 h-8" />
-          <h1 className="text-4xl font-bold text-arena-yellow">ARENAFIT</h1>
-          <img src="/icon-bars.png" alt="icon" className="w-8 h-8" />
-        </header>
+    <div className="relative h-screen w-full overflow-hidden flex items-center justify-center">
+      <img src="/bg.png" alt="bg" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-black/50"></div>
 
-        <p className="text-center text-gray-300 mb-4">Administración ArenaFit</p>
+      <motion.div className="relative z-10 text-center flex flex-col items-center" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+        <button onClick={() => setShowModal(true)} className="px-8 py-3 bg-yellow-400 text-black font-bold rounded-md hover:bg-yellow-300 transition-all">INICIAR SESIÓN</button>
+      </motion.div>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-4 animate__animated animate__fadeInUp animate__faster">
-          <input
-            type="email"
-            placeholder="Correo electrónico"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="px-4 py-3 rounded-xl bg-black/50 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-arena-yellow animate__animated animate__fadeInLeft"
-            required
-          />
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} />
 
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="px-4 py-3 rounded-xl bg-black/50 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-arena-yellow animate__animated animate__fadeInRight"
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
-            required
-          />
-        </form>
+            <motion.div className="fixed z-50 bg-black/80 border border-yellow-500 rounded-2xl p-8 w-[90%] max-w-md shadow-2xl text-white" initial={{ opacity: 0, scale: 0.8, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8, y: 40 }}>
+              <h2 className="text-3xl font-bold text-yellow-400 text-center mb-6">Iniciar Sesión</h2>
 
-        <div className="flex justify-center mt-6">
-          {loading && <div className="w-12 h-12 border-4 border-t-arena-yellow border-gray-800 rounded-full animate-spin"></div>}
-        </div>
+              <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                <input type="email" placeholder="Correo electrónico" value={email} onChange={(e) => setEmail(e.target.value)} className="px-4 py-3 rounded-lg bg-black/60 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400" required />
 
-        {message && (
-          <div className={`mt-4 text-center animate__animated ${message.includes('✅') ? 'text-arena-green animate__bounceIn' : message.includes('❌') ? 'text-arena-red animate__shakeX' : 'text-arena-yellow animate__flash'}`}>
-            {message}
-          </div>
+                <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className="px-4 py-3 rounded-lg bg-black/60 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400" onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} required />
+
+                <button type="submit" disabled={loading} className="mt-2 py-3 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-300 transition-all">{loading ? 'Cargando...' : 'Ingresar'}</button>
+              </form>
+
+              {message && (<div className={`mt-4 text-center ${message.includes('✅') ? 'text-green-400' : message.includes('❌') ? 'text-red-400' : 'text-yellow-300'}`}>{message}</div>)}
+
+              <button onClick={() => setShowModal(false)} className="absolute top-4 right-5 text-gray-400 hover:text-yellow-400 text-2xl">✕</button>
+            </motion.div>
+          </>
         )}
-      </main>
+      </AnimatePresence>
     </div>
   );
 }
