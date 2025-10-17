@@ -3,11 +3,14 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import useAdminAuth from '@/lib/useAdminAuth';
+
 
 export default function Home() {
   const [dni, setDni] = useState('');
   const [cliente, setCliente] = useState(null);
   const [loading, setLoading] = useState(false);
+  useAdminAuth();
 
   const handleSubmit = async (e) => {
     e && e.preventDefault();
