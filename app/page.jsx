@@ -51,7 +51,7 @@ export default function Home() {
 
       <main className="relative z-10 w-full max-w-md p-6">
         <header className="flex items-center justify-center gap-4 mb-4">
-          <h1 className="text-5xl font-extrabold text-white">ARENAFIT</h1>
+          {/*<h1 className="text-5xl font-extrabold text-white">ARENAFIT</h1>*/}
         </header>
 
         <p className="text-center text-gray-300 mb-6">Verificación de Membresía</p>
